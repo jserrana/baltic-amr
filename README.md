@@ -6,12 +6,14 @@ Source Data:
 MS-Baltic-Sea-AMR_R-Codes.Rmd					  # R scripts for the analyses: from input data processing to downstream analyses.
 
 data/data.xlsx                                                    # Input file for analysis in R.
+
 			data                                      # Sample information and environmental measurements.
 			motus					  # Relative abundance table of the microbial community based on mOTUs profiler (Supplementary Table S3 ).
 			arg					  # Antimicrobial resistance gene (ARG) data: Reads per kilobase million (RPKM) absolute counts (Supplementary Table S4).
 			mrg					  # Mobile resistance gene (MRG) data: RPKM absolute counts (Supplementary Table S5).
 			mge					  # Mobile genetic elements (MGE) data: RPKM absolute counts (Supplementary Table S6).
 			vfg					  # Virulence factor gene (VFG) data: RPKM absolute counts (Supplementary Table S7).
+   
 out/*.mco                                                         # Final microtable object containing: sample_table, otu_table, tax_table, taxa abundance(calculated for Type,Subtype,Subtype2,Reference), alpha diversity (calculated for Observed, Chao1, se.chao1, ACE, se.ACE, Shannon, Simpson, InvSimpson, Fisher, Pielou, and Coverage), and beta diversity (calculated for bray and jaccard)
 
 ---
