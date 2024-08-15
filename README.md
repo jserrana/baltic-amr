@@ -1,13 +1,12 @@
-Title: "Environmental drivers of the resistome across the Baltic Sea"
-Author: "Joeselle Serrana"
-Date: "3/27/2024"
+This repository contains input data and scripts to reproduce the analysis and figures in R for the study "Environmental drivers of the resistome across the Baltic Sea".
 
 ---  
 Source Data:
 
-MS-Baltic-Sea-AMR_R-Codes.Rmd                                     # R scripts for the analyses: from input data processing to downstream analyses.
+MS-Baltic-Sea-AMR_R-Codes.Rmd					  # R scripts for the analyses: from input data processing to downstream analyses.
+
 data/data.xlsx                                                    # Input file for analysis in R.
-			metadata                                  # Sample information and environmental measurements.
+			data                                      # Sample information and environmental measurements.
 			motus					  # Relative abundance table of the microbial community based on mOTUs profiler (Supplementary Table S3 ).
 			arg					  # Antimicrobial resistance gene (ARG) data: Reads per kilobase million (RPKM) absolute counts (Supplementary Table S4).
 			mrg					  # Mobile resistance gene (MRG) data: RPKM absolute counts (Supplementary Table S5).
