@@ -38,8 +38,7 @@ library("mice")          # Multivariate Imputation by Chained Equations
 library("textshape")     # Text shaping tools
 library("readxl")        # Read Excel files
 
-#setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/(Draft) Baltic Sea AMR/MS-Baltic-Sea-AMR_Analysis")
-setwd("C:/Users/JoeselleSerrana/iCloudDrive/Documents/(Draft) Baltic Sea AMR/MS-Baltic-Sea-AMR_Analysis")
+setwd("YOUR DIRECTORY")
 ```
 
 ### Step 1B: Data Preparation - Generate phyloseq and microtable objects from input data 
