@@ -1,7 +1,7 @@
 This repository contains input data and scripts to reproduce the analysis and figures in R for the study "Environmental drivers of the resistome across the Baltic Sea".
 
 ---  
-Source Data:
+Input Data and Codes:
 
 MS-Baltic-Sea-AMR_R-Codes.Rmd #R scripts for the analyses: from input data processing to downstream analyses.
 
