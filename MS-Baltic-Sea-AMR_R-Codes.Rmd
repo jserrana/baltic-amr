@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-### Step 1A: Load required library and set working directory 
+### Step 1A: Data Preparation - Load required library and set working directory 
 
 ```{r}
 # Load libraries for data manipulation, analysis, and visualization
@@ -38,7 +38,8 @@ library("mice")          # Multivariate Imputation by Chained Equations
 library("textshape")     # Text shaping tools
 library("readxl")        # Read Excel files
 
-setwd("YOUR DIRECTORY")
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/(In Revision) Baltic Sea AMR/MS-Baltic-Sea-AMR_Analysis")
+#setwd("C:/Users/JoeselleSerrana/iCloudDrive/Documents/(In Revision) Baltic Sea AMR/MS-Baltic-Sea-AMR_Analysis")
 ```
 
 ### Step 1B: Data Preparation - Generate phyloseq and microtable objects from input data 
@@ -48,7 +49,7 @@ setwd("YOUR DIRECTORY")
 ### A phyloseq object contains OTU table (taxa abundances), sample metadata, taxonomy table (mapping between OTUs and higher-level taxonomic classifications), and phylogenetic tree (relations between the taxa).
 
 # Import sample data from Excel file
-metadata <- read_excel("data/metadata.xlsx", sheet = "metadata")
+metadata <- read_excel("data/data.xlsx", sheet = "metadata")
 metadata <- column_to_rownames(metadata, loc = 1)
 metadata <- sample_data(as.data.frame(metadata[, 2:18]))
 
@@ -71,15 +72,15 @@ vif.values
 # vif.index
 
 # Import counts annotation data from Excel file and define row names
-otu.tbl <- read_excel("data/metadata.xlsx", sheet = "motus")
+otu.tbl <- read_excel("data/data.xlsx", sheet = "motus")
 otu.tbl <- column_to_rownames(otu.tbl, loc = 1)
-arg.tbl <- read_excel("data/metadata.xlsx", sheet = "arg")
+arg.tbl <- read_excel("data/data.xlsx", sheet = "arg")
 arg.tbl <- column_to_rownames(arg.tbl, loc = 1)
-mrg.tbl <- read_excel("data/metadata.xlsx", sheet = "mrg")
+mrg.tbl <- read_excel("data/data.xlsx", sheet = "mrg")
 mrg.tbl <- column_to_rownames(mrg.tbl, loc = 1)
-mge.tbl <- read_excel("data/metadata.xlsx", sheet = "mge")
+mge.tbl <- read_excel("data/data.xlsx", sheet = "mge")
 mge.tbl <- column_to_rownames(mge.tbl, loc = 1)
-vfg.tbl <- read_excel("data/metadata.xlsx", sheet = "vfg")
+vfg.tbl <- read_excel("data/data.xlsx", sheet = "vfg")
 vfg.tbl <- column_to_rownames(vfg.tbl, loc = 1)
 
 # Remove decimals from columns in data frames
@@ -153,12 +154,12 @@ mge.mco$cal_betadiv(unifrac = FALSE)
 vfg.mco$cal_betadiv(unifrac = FALSE)
 
 # Save files as RDS
-saveRDS(arg.psq, "out/otu.psq.RDS")
+saveRDS(otu.psq, "out/otu.psq.RDS")
 saveRDS(arg.psq, "out/arg.psq.RDS")
 saveRDS(mrg.psq, "out/mrg.psq.RDS")
 saveRDS(mge.psq, "out/mge.psq.RDS")
 saveRDS(vfg.psq, "out/vfg.psq.RDS")
-saveRDS(arg.mco, "out/otu.mco.RDS")
+saveRDS(otu.mco, "out/otu.mco.RDS")
 saveRDS(arg.mco, "out/arg.mco.RDS")
 saveRDS(mrg.mco, "out/mrg.mco.RDS")
 saveRDS(mge.mco, "out/mge.mco.RDS")
@@ -287,10 +288,10 @@ t1 <- trans_norm$new(dataset = dataset)
 dataset.pa <- t1$norm(method = "pa"); dataset.pa
 
 t1 <- trans_abund$new(dataset = dataset.pa, taxrank = "Type", ntaxa = 8, groupmean = "Region")
-F0 <- t1$plot_line(position = position_dodge(0.3), xtext_angle = 0, color_values = c(rev(brewer.pal(n = 8, name = "Spectral")), "gray90"), errorbar_width = 0.05,
-                   point_alpha = 1, line_alpha = 0.5) + theme_bw() + 
-      theme(axis.text.x = element_blank(), panel.grid = element_blank(), legend.position = "none") +
-      xlab("km distance") + ylab("ARG Frequency (%)")
+F0 <- t1$plot_line(position = position_dodge(0.3), xtext_angle = 0, color_values = c(rev(brewer.pal(n = 8, name = "Spectral")), "gray90"), errorbar_width = 1, errorbar_size = 0.25,
+                   point_alpha = 1, line_alpha = 0.5, point_size = 1.5) + theme_bw() + 
+      theme(axis.text.x = element_blank(), panel.grid = element_blank(), legend.position = "none", axis.ticks.x = element_blank()) +
+      xlab("North to South across 1,150 km distance") + ylab("Frequency of \n Top 8 Predicted ARGs (%)") #+ ggtitle("Top 8 ARGs")
 F0
  
 dataset <- clone(arg.mco)
@@ -463,6 +464,37 @@ R3 <- ggboxplot(glyco, x = "Region", y = "Abundance", color = "Region", add = "j
 R2 / R3
 ```
 
+```{r}
+## Subset dataset by group.
+multi.mco <- clone(arg.mco)
+multi.mco$tax_table <- subset(multi.mco$tax_table, Type == "t__Multidrug")
+multi.mco$tidy_dataset()
+multi.mco
+
+multi.mco$cal_abund(); class(multi.mco$taxa_abund) ## Calculate the taxa abundance at each taxonomic rank using cal_abund().
+multi.mco$cal_alphadiv(PD = FALSE); class(multi.mco$alpha_diversity) ## Calculate the Alpha diversity w/ Faith's phylogenetic diversity.
+multi.mco$cal_betadiv(unifrac = FALSE); class(multi.mco$beta_diversity) ## Create trans_beta object and measure parameter - dataset$beta_diversity
+
+colors <- c(scales::brewer_pal(palette = "Set1")(8), "gray90")
+
+dataset <- clone(multi.mco)
+dataset$sample_table$Region %<>% factor(., levels = rev(c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic")))
+
+t1 <- trans_abund$new(dataset = dataset, taxrank = "Subtype", ntaxa = 8, groupmean = "Region")
+C0 <- t1$plot_bar(coord_flip = FALSE, color_values = colors) +
+      theme_bw() + theme(legend.position = "right", axis.title.x = element_text(size = 10), axis.ticks.y = element_blank(),  #axis.text.x = element_text(angle = 25, hjust = 1), 
+                         axis.line.y = element_blank()) + ylab("Predicted Multidrug ARG Relative abundance (%)") 
+
+C0 <- t1$plot_bar(clustering_plot = TRUE, color_values = colors)
+C0[[1]] <- C0[[1]] + theme_bw() + theme(legend.position = "right", axis.title.x = element_text(size = 10), axis.ticks.y = element_blank(), axis.line.y = element_blank()) + ylab("ARG Relative abundance (%)")
+C0
+
+dataset$sample_table$ALL <- "ALL"
+t1 <- trans_abund$new(dataset = dataset, taxrank = "Subtype", ntaxa = 8, groupmean = "ALL")
+P0 <- t1$plot_donut(label = TRUE, color_values = colors)
+P0
+```
+
 ```{r, Visualize relative abundance of MRG}
 # Load necessary libraries
 library(ggplot2)
@@ -631,7 +663,7 @@ perform_levenes_test <- function(diversity_metric, psq, dataset) {
   diversity_df <- data.frame(alpha_diversity_metric)
   diversity_df$Region <- sample_data(psq)$Region
   
-  levene_results <- leveneTest(diversity_df[, 1] ~ Region, data = diversity_df)
+  levene_results <- leveneTest(diversity_df[, 1] ~ Region, data = diversity_df) 
   
   return(levene_results)
 }
@@ -825,6 +857,37 @@ A5 <- t1$plot_alpha(measure = "Pielou",
                     axis.text.x = element_blank()) + labs(y = "Pielou Evenness")
 A4 + A5
 
+dataset <- clone(otu.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+t1 <- trans_alpha$new(dataset = dataset, group = "Region")
+
+### Linear regression analysis
+
+distance <- dataset$sample_table$Distance
+alpha <- dataset$alpha_diversity
+alpha$Distance <- distance
+
+# Fit the linear regression model
+model.sha <- lm(Shannon ~ Distance, data = alpha)
+model.pie <- lm(Pielou ~ Distance, data = alpha)
+
+# Summarize the model
+summary(model.sha)
+summary(model.pie)
+
+L4 <- ggplot(alpha, aes(x = Distance, y = Shannon)) +
+  geom_point(color = "gray50", alpha = 0.6) +  # Scatter plot of the data
+  geom_smooth(method = "lm", color = "black", se = TRUE) +  # Add regression line with confidence interval
+  labs(x = "km distance", y = "Shannon Diversity") +
+  theme_bw() + theme(panel.grid = element_blank(), axis.text.y = element_text(angle = 90, hjust = 1))
+
+L5 <- ggplot(alpha, aes(x = Distance, y = Pielou)) +
+  geom_point(color = "gray50", alpha = 0.6) +  # Scatter plot of the data
+  geom_smooth(method = "lm", color = "black", se = TRUE) +  # Add regression line with confidence interval
+  labs(x = "km distance", y = "Pielou Evenness") +
+  theme_bw() + theme(panel.grid = element_blank(), axis.text.y = element_text(angle = 90, hjust = 1))
+
 dataset <- clone(mrg.mco)
 dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
 
@@ -969,7 +1032,7 @@ A14 <- t1$plot_alpha(measure = "Pielou",
 
 A12 + A13 + A14
 
-(A4 + A5) / (A6 + A7 + A8) / (A9 + A10 + A11) / (A12 + A13 + A14) + patchwork::plot_annotation(tag_levels = 'A') + theme(plot.tag = element_text(face = "bold"))
+(A4 + A5) / (L4 + L5) / (A6 + A7 + A8) / (A9 + A10 + A11) / (A12 + A13 + A14) + patchwork::plot_annotation(tag_levels = 'A') + theme(plot.tag = element_text(face = "bold"))
 ```
 
 ### Step 3C: Statistical Analysis - Beta diversity estimation 
@@ -988,7 +1051,7 @@ t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination
 B1 <- t1$plot_ordination(plot_color = "Region", 
                          plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
                          color_values = RColorBrewer::brewer.pal(8, "Dark2"), add_sample_label = "Sample") +
-                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5)) +
                          ggalt::geom_encircle(aes(s_shape = 1, expand = 0, group = Region, fill = Region, colour = Region), alpha = 0.5) +
                          annotate("text", x = -0.15, y = -0.3, label = "Bothnian Bay", colour = "#1B9E77") +
                          #annotate("text", x = -0.2, y = -0.2, label = "Bothnian Sea", colour = "#D95F02") +
@@ -1017,7 +1080,7 @@ P1 <- t1$plot_group_distance(boxplot_add = "mean",
                                                   "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic")) +
       geom_boxplot(fill = brewer.pal(n = 8, name = "Dark2"), color = "black", alpha = 1, outlier.shape = NA) + theme_bw() +
       #geom_smooth(method = loess, se = TRUE, aes(group = 1)) +
-      theme(legend.position = "none", axis.text.y = element_text(size = 10, angle = 0), 
+      theme(legend.position = "none", axis.text.y = element_text(size = 10, angle = 90, hjust = 0.5) 
             panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
             axis.text.x = element_text(size = 10, angle = 40, hjust = 1))
 P1
@@ -1037,7 +1100,7 @@ t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination
 B2 <- t1$plot_ordination(plot_color = "Region", 
                          plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
                          color_values = RColorBrewer::brewer.pal(8, "Dark2")) +
-                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "top") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5)) +
                          ggalt::geom_encircle(aes(s_shape = 1, expand = 0, group = Region, fill = Region, colour = Region), alpha = 0.5)
 B2
 
@@ -1060,7 +1123,7 @@ t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination
 B3 <- t1$plot_ordination(plot_color = "Region", 
                          plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
                          color_values = RColorBrewer::brewer.pal(8, "Dark2")) +
-                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5)) +
                          ggalt::geom_encircle(aes(s_shape = 1, expand = 0, group = Region, fill = Region, colour = Region), alpha = 0.5)
 B3
 
@@ -1083,7 +1146,7 @@ t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination
 B4 <- t1$plot_ordination(plot_color = "Region", 
                          plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
                          color_values = RColorBrewer::brewer.pal(8, "Dark2")) +
-                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5)) +
                          ggalt::geom_encircle(aes(s_shape = 1, expand = 0, group = Region, fill = Region, colour = Region), alpha = 0.5)
 B4
 
@@ -1106,7 +1169,7 @@ t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination
 B5 <- t1$plot_ordination(plot_color = "Region", 
                          plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
                          color_values = RColorBrewer::brewer.pal(8, "Dark2")) +
-                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5)) +
                          ggalt::geom_encircle(aes(s_shape = 1, expand = 0, group = Region, fill = Region, colour = Region), alpha = 0.5)
 B5
 
@@ -1134,11 +1197,11 @@ set.seed(123456) # for reproducibility, remove for normal use
 
 #Based on UN-aggregated datasets
 baltic.df <- cbind(t(as.data.frame(abundances(phyloseq_filter_prevalence(otu.psq, prev.trh = 0.05, abund.trh = NULL)))),
+                   #t(as.data.frame(abundances(phyloseq_filter_prevalence(transform_sample_counts(otu.psq, function(x) ifelse(x > 0, 1, 0)), prev.trh = 0.05, abund.trh = NULL)))),
                    t(as.data.frame(abundances(phyloseq_filter_prevalence(arg.psq, prev.trh = 0.05, abund.trh = NULL)))),
                    t(as.data.frame(abundances(phyloseq_filter_prevalence(mge.psq, prev.trh = 0.05, abund.trh = NULL)))),
                    t(as.data.frame(abundances(phyloseq_filter_prevalence(vfg.psq, prev.trh = 0.05, abund.trh = NULL)))),
-                   t(as.data.frame(abundances(phyloseq_filter_prevalence(mrg.psq, prev.trh = 0.05, abund.trh = NULL))))
-                   );
+                   t(as.data.frame(abundances(phyloseq_filter_prevalence(mrg.psq, prev.trh = 0.05, abund.trh = NULL)))));
 dim(baltic.df)
 
 # define path matrix (inner model)
@@ -1146,7 +1209,7 @@ Microbes <- c(0,0,0,0,0)
 MGE <- c(1,0,0,0,0)
 VFG <- c(1,1,0,0,0)
 ARG <- c(1,1,1,0,0)
-MRG <- c(1,1,1,0,0)
+MRG <- c(1,1,1,1,0)
 
 baltic.path <- rbind(Microbes, MGE, VFG, ARG, MRG)
 
@@ -1164,6 +1227,8 @@ print(baltic.pls)
 
 # summary of results
 summary(baltic.pls)
+
+baltic.pls$gof
 
 # plot inner model results
 plot(baltic.pls, what = "inner",
@@ -1393,6 +1458,9 @@ t1$res_ordination_axis
 # Perform envfit analysis
 t1$cal_ordination_envfit()
 t1$res_ordination_envfit
+
+
+t1$res_ordination_R2
 ```
 
 ### Step 3H: Statistical Analysis - Distance-decay relationships of Bray-Curtis dissimilarity and haversine distance
@@ -1408,7 +1476,7 @@ dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian 
 t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
 D1 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
                          type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", line_alpha = 0.25, line_se_color = "#8DA0CB", lm_equation = FALSE, line_color = "#8DA0CB",
-                         x_axis_title = "km distance", y_axis_title = "ARG Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#8DA0CB", alpha = 0.05) #+ scale_y_reverse()
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#8DA0CB", alpha = 0.05) + ggtitle("ARGs")
 D1
 
 dataset <- clone(otu.mco)
@@ -1420,7 +1488,7 @@ dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian 
 t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
 D2 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
                          type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", line_alpha = 0.25, line_se_color = "#A6D854", lm_equation = FALSE, line_color = "#A6D854",
-                         x_axis_title = "km distance", y_axis_title = "Microbial Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#A6D854", alpha = 0.05)
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#A6D854", alpha = 0.05) + ggtitle("Microbes")
 D2
 
 dataset <- clone(mrg.mco)
@@ -1432,7 +1500,7 @@ dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian 
 t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
 D3 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
                          type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", line_alpha = 0.25, line_se_color = "#E78AC3", lm_equation = FALSE, line_color = "#E78AC3",
-                         x_axis_title = "km distance", y_axis_title = "MRG Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#E78AC3", alpha = 0.05)
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#E78AC3", alpha = 0.05) + ggtitle("MRGs")
 D3
 
 dataset <- clone(mge.mco)
@@ -1444,7 +1512,7 @@ dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian 
 t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
 D4 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
                          type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", line_alpha = 0.25, line_se_color = "#E5C494", lm_equation = FALSE, line_color = "#E5C494",
-                         x_axis_title = "km distance", y_axis_title = "MGE Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#E5C494", alpha = 0.05)
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#E5C494", alpha = 0.05) + ggtitle("MGEs")
 D4
 
 dataset <- clone(vfg.mco)
@@ -1456,7 +1524,7 @@ dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian 
 t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
 D5 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
                          type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", line_alpha = 0.25, line_se_color = "#FC8D62", lm_equation = FALSE, line_color = "#FC8D62",
-                         x_axis_title = "km distance", y_axis_title = "VFG Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#FC8D62", alpha = 0.05)
+                         x_axis_title = "km distance", y_axis_title = "VFG Bray-Curtis distance") + theme_bw() + theme(panel.grid = element_blank()) + geom_point(colour = "#FC8D62", alpha = 0.05) + ggtitle("VFGs")
 D5
 
 #D1 + (D2 + D3) / (D4 + D5)
@@ -1799,3 +1867,522 @@ custom_legend_plot <- ggplot(legend_df, aes(x = x, y = y, color = legend_colors)
 # Print the custom legend plot
 print(custom_legend_plot)
 ```
+
+### Step XX: Database Comparison: Load datasets
+
+```{r}
+library("microbiomer")
+
+# Import counts annotation data from Excel file and define row names
+amr.tbl <- read_excel("data/data.xlsx", sheet = "amrpp")
+amr.tbl <- column_to_rownames(amr.tbl, loc = 1)
+
+# Create phyloseq object
+amr.psq <- phyloseq(otu_table(as.matrix(amr.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(amr.tbl[60:62])), sample_data(metadata.log))
+
+# Returns an phyloseq-object containing relative abundances instead of raw read counts (uses total sum scaling).
+amr.psq <- to_RA(amr.psq)
+
+# Create microeco object
+amr.mco <- file2meco::phyloseq2meco(amr.psq, auto_tidy = FALSE)
+amr.mco$tidy_dataset()
+
+### STEP 1d: Add abundance and beta diversity estimates
+amr.mco$cal_abund() # Calculate the taxa abundance at each taxonomic rank using cal_abund()
+amr.mco$cal_alphadiv(PD = FALSE) # Calculate alpha diversity
+amr.mco$cal_betadiv(unifrac = FALSE) # Calculate beta diversity
+
+# Save files as RDS
+saveRDS(amr.psq, "out/amr.psq.RDS")
+saveRDS(amr.mco, "out/amr.mco.RDS")
+
+# Import counts annotation data from Excel file and define row names
+crd.tbl <- read_excel("data/data.xlsx", sheet = "card"); crd.tbl <- column_to_rownames(crd.tbl, loc = 1)
+r50.tbl <- read_excel("data/data.xlsx", sheet = "resfinder-50"); r50.tbl <- column_to_rownames(r50.tbl, loc = 1)
+r80.tbl <- read_excel("data/data.xlsx", sheet = "resfinder-80"); r80.tbl <- column_to_rownames(r80.tbl, loc = 1)
+meg.tbl <- read_excel("data/data.xlsx", sheet = "megares"); meg.tbl <- column_to_rownames(meg.tbl, loc = 1)
+rfg.tbl <- read_excel("data/data.xlsx", sheet = "resfinderfg"); rfg.tbl <- column_to_rownames(rfg.tbl, loc = 1)
+sar.tbl <- read_excel("data/data.xlsx", sheet = "sarg"); sar.tbl <- column_to_rownames(sar.tbl, loc = 1)
+pan.tbl <- read_excel("data/data.xlsx", sheet = "panres"); pan.tbl <- column_to_rownames(pan.tbl, loc = 1)
+
+# Remove decimals from columns in data frames
+crd.tbl[1:59] <- lapply(crd.tbl, as.integer)
+r50.tbl[1:59] <- lapply(r50.tbl, as.integer)
+r80.tbl[1:59] <- lapply(r80.tbl, as.integer)
+meg.tbl[1:59] <- lapply(meg.tbl, as.integer)
+rfg.tbl[1:59] <- lapply(rfg.tbl, as.integer)
+sar.tbl[1:59] <- lapply(sar.tbl, as.integer)
+pan.tbl[1:59] <- lapply(pan.tbl, as.integer)
+
+### STEP 1b: Create phyloseq object
+crd.psq <- phyloseq(otu_table(as.matrix(crd.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(crd.tbl[60:63])), sample_data(metadata.log))
+r50.psq <- phyloseq(otu_table(as.matrix(r50.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(r50.tbl[60])), sample_data(metadata.log))
+r80.psq <- phyloseq(otu_table(as.matrix(r80.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(r80.tbl[60])), sample_data(metadata.log))
+meg.psq <- phyloseq(otu_table(as.matrix(meg.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(meg.tbl[60:61])), sample_data(metadata.log))
+rfg.psq <- phyloseq(otu_table(as.matrix(rfg.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(rfg.tbl[60])), sample_data(metadata.log))
+sar.psq <- phyloseq(otu_table(as.matrix(sar.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(sar.tbl[60])), sample_data(metadata.log))
+pan.psq <- phyloseq(otu_table(as.matrix(pan.tbl[1:59]), taxa_are_rows = TRUE), tax_table(as.matrix(pan.tbl[60])), sample_data(metadata.log))
+
+### STEP 1c: Create microtable object for microeco downstream analyses
+
+# Create microeco object
+crd.mco <- file2meco::phyloseq2meco(crd.psq, auto_tidy = FALSE); crd.mco$tidy_dataset()
+r50.mco <- file2meco::phyloseq2meco(r50.psq, auto_tidy = FALSE); r50.mco$tidy_dataset()
+r80.mco <- file2meco::phyloseq2meco(r80.psq, auto_tidy = FALSE); r80.mco$tidy_dataset()
+meg.mco <- file2meco::phyloseq2meco(meg.psq, auto_tidy = FALSE); meg.mco$tidy_dataset()
+rfg.mco <- file2meco::phyloseq2meco(rfg.psq, auto_tidy = FALSE); rfg.mco$tidy_dataset()
+sar.mco <- file2meco::phyloseq2meco(sar.psq, auto_tidy = FALSE); sar.mco$tidy_dataset()
+pan.mco <- file2meco::phyloseq2meco(pan.psq, auto_tidy = FALSE); pan.mco$tidy_dataset()
+
+### STEP 1d: Add abundance and beta diversity estimates
+
+# Calculate the taxa abundance at each taxonomic rank using cal_abund()
+crd.mco$cal_abund()
+r50.mco$cal_abund()
+r80.mco$cal_abund()
+meg.mco$cal_abund()
+rfg.mco$cal_abund()
+sar.mco$cal_abund()
+pan.mco$cal_abund()
+
+# Calculate alpha diversity
+crd.mco$cal_alphadiv(PD = FALSE)
+r50.mco$cal_alphadiv(PD = FALSE)
+r80.mco$cal_alphadiv(PD = FALSE)
+meg.mco$cal_alphadiv(PD = FALSE)
+rfg.mco$cal_alphadiv(PD = FALSE)
+sar.mco$cal_alphadiv(PD = FALSE)
+pan.mco$cal_alphadiv(PD = FALSE)
+
+# Calculate beta diversity
+crd.mco$cal_betadiv(unifrac = FALSE)
+r50.mco$cal_betadiv(unifrac = FALSE)
+r80.mco$cal_betadiv(unifrac = FALSE)
+meg.mco$cal_betadiv(unifrac = FALSE)
+rfg.mco$cal_betadiv(unifrac = FALSE)
+sar.mco$cal_betadiv(unifrac = FALSE)
+pan.mco$cal_betadiv(unifrac = FALSE)
+
+# Save files as RDS
+saveRDS(crd.psq, "out/crd.psq.RDS")
+saveRDS(r50.psq, "out/r50.psq.RDS")
+saveRDS(r80.psq, "out/r80.psq.RDS")
+saveRDS(meg.psq, "out/meg.psq.RDS")
+saveRDS(rfg.psq, "out/rfg.psq.RDS")
+saveRDS(sar.psq, "out/sar.psq.RDS")
+saveRDS(pan.psq, "out/pan.psq.RDS")
+
+saveRDS(crd.mco, "out/crd.mco.RDS")
+saveRDS(r50.mco, "out/r50.mco.RDS")
+saveRDS(r80.mco, "out/r80.mco.RDS")
+saveRDS(meg.mco, "out/meg.mco.RDS")
+saveRDS(rfg.mco, "out/rfg.mco.RDS")
+saveRDS(sar.mco, "out/sar.mco.RDS")
+saveRDS(pan.mco, "out/pan.mco.RDS")
+```
+
+### Step XX: Visulize composition
+
+```{r}
+dataset <- clone(pan.mco)
+dataset$sample_table$Region %<>% factor(., levels = rev(c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic")))
+
+t1 <- trans_abund$new(dataset = dataset, taxrank = "Type", ntaxa = 8, groupmean = "Region")
+C0 <- t1$plot_bar(clustering_plot = TRUE, color_values = rev(brewer.pal(n = 8, name = "Reds")))
+C0[[1]] <- C0[[1]] + theme_bw() + theme(legend.position = "none", axis.title.x = element_text(size = 10), axis.ticks.y = element_blank(), axis.line.y = element_blank()) +
+      ylab("ARG Relative abundance (%)") + ggtitle("PanRes*")
+C0
+```
+
+```{r}
+# Load the ggplot2 library
+library(ggplot2)
+
+# Plot number of identifications
+data <- data.frame(
+  Method = c("DeepARG", "AMR++", "CARD", "ResFinder (80)", "ResFinder (50)", "ResFinderFG", "MegaRes", "SARG", "PanRes"),
+  Annotations = c(2042, 686, 56, 11, 526, 7, 321, 137, 1656))
+
+# Create the bar plot
+#ggplot(data, aes(x = factor(Method, levels = c("DeepARG", "AMR++", "CARD", "ResFinder (80)", "ResFinder (50)", "ResFinderFG", "MegaRes", "SARG", "PanRes")), y = Annotations)) +
+D1 <- ggplot(data, aes(x = reorder(Method, -Annotations), y = Annotations)) +
+      geom_bar(stat = "identity") + geom_text(aes(label = Annotations), vjust = 0.5) + theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.title.x = element_blank(), axis.title.y = element_blank()) +
+      labs(title = "No. of Annotations")
+
+# Plot number of identifications
+data <- data.frame(
+  Method = c("***DeepARG", "**AMR++", "***CARD",
+             "ResFinder (80)", "***ResFinder (50)", "***ResFinderFG",
+             "***MegaRes", "***SARG", "***PanRes"),
+  Annotations = c(0.32, 0.29, 0.24, 0.15, 0.18, 0.31, 0.15, 0.19, 0.20))
+
+# Create the bar plot
+D2 <- ggplot(data, aes(x = reorder(Method, -Annotations), y = Annotations)) +
+      geom_bar(stat = "identity") + geom_text(aes(label = Annotations), vjust = 0.5) + theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.title.x = element_blank(), axis.title.y = element_blank()) +
+      labs(title = "adonis R2 (by Region)")
+
+# Plot number of identifications
+data <- data.frame(
+  Method = c("DeepARG", "AMR++", "CARD",
+             "ResFinder (80)", "ResFinder (50)", #"ResFinderFG",
+             "MegaRes", "SARG", "PanRes"),
+  Annotations = c(0.24, 0.29, 0.11, 0.03, 0.07, 0.07, 0.11, 0.10))
+
+# Create the bar plot
+D3 <- ggplot(data, aes(x = reorder(Method, -Annotations), y = Annotations)) +
+      geom_bar(stat = "identity") + geom_text(aes(label = Annotations), vjust = 0.5) + theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.title.x = element_blank(), axis.title.y = element_blank()) +
+      labs(title = "db-RDA adj. R2")
+
+D1 + D2 + D3
+```
+
+### Step XX: Correlation analysis of Beta diversity
+
+```{r}
+dataset <- clone(pan.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+#dataset <- dataset$merge_taxa(taxa = "Subtype"); dataset$tidy_dataset(); dataset ## Aggregate dataset to Species-level assignment
+#dataset$cal_betadiv(unifrac = FALSE); class(dataset$beta_diversity) ## Create trans_beta object and measure parameter - dataset$beta_diversity
+
+# measure parameter must be one of names(dataset$beta_diversity)
+t1 <- trans_beta$new(dataset = dataset, group = "Region", measure = "bray")
+# PCoA, PCA and NMDS are available
+t1$cal_ordination(method = "PCoA"); class(t1$res_ordination) # t1$res_ordination is the ordination result list
+# plot the PCoA result with confidence ellipse
+B1 <- t1$plot_ordination(plot_color = "Region", 
+                         plot_shape = "Region", plot_type = c("chull"), ellipse_chull_alpha = 0,
+                         color_values = RColorBrewer::brewer.pal(8, "Dark2"), add_sample_label = "Sample") +
+                         theme_bw() + theme(panel.grid = element_blank(), legend.position = "none") +
+                         ggalt::geom_encircle(aes(s_shape = 1, expand = 0,
+                                                  group = Region, fill = Region, colour = Region), alpha = 0.5) +
+                         ggtitle("PanRes")
+                         #annotate("text", x = -0.15, y = -0.3, label = "Bothnian Bay", colour = "#1B9E77") +
+                         #annotate("text", x = -0.2, y = -0.2, label = "Bothnian Sea", colour = "#D95F02") +
+                         #annotate("text", x = -0.2, y = -0.2, label = "Stockholm", colour = "#7570B3") +
+                         #annotate("text", x = -0.2, y = -0.2, label = "Sörmland", colour = "#E7298A") +
+                         #annotate("text", x = -0.15, y = -0.08, label = "Dead Zone (Sörmland)", colour = "#66A61E") +
+                         #annotate("text", x = -0.2, y = -0.2, label = "Östergötland", colour = "#E6AB02") +
+                         #annotate("text", x = -0.2, y = 0, label = "Dead Zone (Mid-South)", colour = "#A6761D") +
+                         #annotate("text", x = -0.3, y = 0.1, label = "Southern Baltic", colour = "#666666")
+#B1
+
+# manova for specified group set: such as "Region"
+t1$cal_manova(); t1$res_manova
+
+t1$cal_anosim(group = "Region"); t1$res_anosim
+t1$cal_betadisper(); t1$res_betadisper
+
+# calculate and plot sample distances within groups
+t1$cal_group_distance(within_group = TRUE)
+# return t1$res_group_distance
+# perform ANOVA
+t1$cal_group_distance_diff(method = "anova"); t1$res_group_distance_diff
+# plot_group_order parameter can be used to adjust orders in x axis
+P1 <- t1$plot_group_distance(boxplot_add = "mean", plot_group_order = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic")) +
+      geom_boxplot(fill = brewer.pal(n = 8, name = "Dark2"), color = "black", alpha = 1, outlier.shape = NA) + theme_bw() +
+      #geom_smooth(method = loess, se = TRUE, aes(group = 1)) +
+      theme(legend.position = "top", axis.text.y = element_text(size = 10, angle = 0), 
+            panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+            axis.text.x = element_text(size = 10, angle = 40, hjust = 1)) +  ggtitle("PanRes")
+
+P1
+```
+
+```{r}
+library("vegan")
+
+# Extract beta diversity matrices (Bray-Curtis) for each dataset
+arg.bc <- arg.mco$beta_diversity$bray
+amr.bc <- amr.mco$beta_diversity$bray
+crd.bc <- crd.mco$beta_diversity$bray
+r80.bc <- r80.mco$beta_diversity$bray
+r50.bc <- r50.mco$beta_diversity$bray
+meg.bc <- meg.mco$beta_diversity$bray
+rfg.bc <- rfg.mco$beta_diversity$bray
+sar.bc <- sar.mco$beta_diversity$bray
+pan.bc <- pan.mco$beta_diversity$bray
+
+# Hellinger transformation for PCA
+arg.bc.hel <- decostand(arg.bc, method = "hellinger"); arg.bc.hel.pca <- rda(arg.bc.hel)
+amr.bc.hel <- decostand(amr.bc, method = "hellinger"); amr.bc.hel.pca <- rda(amr.bc.hel)
+crd.bc.hel <- decostand(crd.bc, method = "hellinger"); crd.bc.hel.pca <- rda(crd.bc.hel)
+r80.bc.hel <- decostand(r80.bc, method = "hellinger"); r80.bc.hel.pca <- rda(r80.bc.hel)
+r50.bc.hel <- decostand(r50.bc, method = "hellinger"); r50.bc.hel.pca <- rda(r50.bc.hel)
+meg.bc.hel <- decostand(meg.bc, method = "hellinger"); meg.bc.hel.pca <- rda(meg.bc.hel)
+rfg.bc.hel <- decostand(rfg.bc, method = "hellinger"); rfg.bc.hel.pca <- rda(rfg.bc.hel)
+sar.bc.hel <- decostand(sar.bc, method = "hellinger"); sar.bc.hel.pca <- rda(sar.bc.hel)
+pan.bc.hel <- decostand(pan.bc, method = "hellinger"); pan.bc.hel.pca <- rda(pan.bc.hel)
+
+# Test between ARG and OTU
+arg.amr.pro <- procrustes(X = arg.bc.hel.pca, Y = amr.bc.hel.pca, symmetric = TRUE); summary(arg.amr.pro)
+arg.amr.prt <- protest(X = arg.bc.hel.pca, Y = amr.bc.hel.pca, scores = "sites", permutations = 999)
+arg.amr.prt
+arg.crd.pro <- procrustes(X = arg.bc.hel.pca, Y = crd.bc.hel.pca, symmetric = TRUE); summary(arg.crd.pro)
+arg.crd.prt <- protest(X = arg.bc.hel.pca, Y = crd.bc.hel.pca, scores = "sites", permutations = 999)
+arg.crd.prt
+arg.r80.pro <- procrustes(X = arg.bc.hel.pca, Y = r80.bc.hel.pca, symmetric = TRUE); summary(arg.r80.pro)
+arg.r80.prt <- protest(X = arg.bc.hel.pca, Y = r80.bc.hel.pca, scores = "sites", permutations = 999)
+arg.r80.prt
+arg.r50.pro <- procrustes(X = arg.bc.hel.pca, Y = r50.bc.hel.pca, symmetric = TRUE); summary(arg.r50.pro)
+arg.r50.prt <- protest(X = arg.bc.hel.pca, Y = r50.bc.hel.pca, scores = "sites", permutations = 999)
+arg.r50.prt
+arg.meg.pro <- procrustes(X = arg.bc.hel.pca, Y = meg.bc.hel.pca, symmetric = TRUE); summary(arg.meg.pro)
+arg.meg.prt <- protest(X = arg.bc.hel.pca, Y = meg.bc.hel.pca, scores = "sites", permutations = 999)
+arg.meg.prt
+arg.rfg.pro <- procrustes(X = arg.bc.hel.pca, Y = rfg.bc.hel.pca, symmetric = TRUE); summary(arg.rfg.pro)
+arg.rfg.prt <- protest(X = arg.bc.hel.pca, Y = rfg.bc.hel.pca, scores = "sites", permutations = 999)
+arg.rfg.prt
+arg.sar.pro <- procrustes(X = arg.bc.hel.pca, Y = sar.bc.hel.pca, symmetric = TRUE); summary(arg.sar.pro)
+arg.sar.prt <- protest(X = arg.bc.hel.pca, Y = sar.bc.hel.pca, scores = "sites", permutations = 999)
+arg.sar.prt
+arg.pan.pro <- procrustes(X = arg.bc.hel.pca, Y = pan.bc.hel.pca, symmetric = TRUE); summary(arg.pan.pro)
+arg.pan.prt <- protest(X = arg.bc.hel.pca, Y = pan.bc.hel.pca, scores = "sites", permutations = 999)
+arg.pan.prt
+
+#plot(arg.amr.pro, kind = 1)
+plot(arg.amr.pro, kind = 1, main = "DeepARG & AMR++", ar.col = "gray")
+lines(arg.amr.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.amr.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.amr.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.crd.pro, kind = 1)
+plot(arg.crd.pro, kind = 1, main = "DeepARG & CARD", ar.col = "gray")
+lines(arg.crd.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.crd.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.crd.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.r80.pro, kind = 1)
+plot(arg.r80.pro, kind = 1, main = "DeepARG & ResFinder (80%)", ar.col = "gray")
+lines(arg.r80.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.r80.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.r80.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.r50.pro, kind = 1)
+plot(arg.r50.pro, kind = 1, main = "DeepARG & ResFinder (50%)", ar.col = "gray")
+lines(arg.r50.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.r50.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.r50.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.meg.pro, kind = 1)
+plot(arg.meg.pro, kind = 1, main = "DeepARG & MegaRes", ar.col = "gray")
+lines(arg.meg.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.meg.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.meg.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.rfg.pro, kind = 1)
+plot(arg.rfg.pro, kind = 1, main = "DeepARG & ResFinderFG", ar.col = "gray")
+lines(arg.rfg.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.rfg.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.rfg.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.sar.pro, kind = 1)
+plot(arg.sar.pro, kind = 1, main = "DeepARG & SARG", ar.col = "gray")
+lines(arg.sar.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.sar.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.sar.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+
+#plot(arg.pan.pro, kind = 1)
+plot(arg.pan.pro, kind = 1, main = "DeepARG & PanRes", ar.col = "gray")
+lines(arg.pan.pro, type = "segments", col = "gray", lwd = 2, lty = 3)
+points(arg.pan.pro, display = c("target"), col = "black", cex = 1, pch = 21, bg = "#8DA0CB")
+points(arg.pan.pro, display = c("rotated"), col = "black", cex = 1, pch = 21, bg = "#FDAE61")
+```
+
+### Step XX: Correlation analysis of Alpha diversity
+
+```{r}
+# Pearson Correlation of Chao1 Richness
+
+# Combine your matrices into a single data frame
+df <- cbind(ARG = (arg.mco$alpha_diversity$Pielou),
+            AMR = (amr.mco$alpha_diversity$Pielou),
+            CRD = (crd.mco$alpha_diversity$Pielou),
+            #R80 = (r80.mco$alpha_diversity$Pielou),
+            R50 = (r50.mco$alpha_diversity$Pielou),
+            MEG = (meg.mco$alpha_diversity$Pielou),
+            #RFG = (rfg.mco$alpha_diversity$Pielou),
+            SAR = (sar.mco$alpha_diversity$Pielou),
+            PAN = (pan.mco$alpha_diversity$Pielou))
+
+library(reshape2)
+
+#calculate correlation coefficients, rounded to 2 decimal places
+cor_df <- round(cor(df), 2)
+
+#melt the data frame
+melted_cor <- melt(cor_df)
+
+#view head of melted data frame
+head(melted_cor)
+
+library(ggplot2)
+
+#create correlation heatmap
+ggplot(data = melted_cor, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() + ggtitle("Pielou Evenness") +
+  geom_text(aes(Var2, Var1, label = value), size = 3) +
+  scale_fill_gradient2(low = "blue", high = "red", limit = c(-1,1), name="Pearson\nCorrelation") +
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.background = element_blank())
+```
+
+### Step XX: Environmental Association
+
+```{r}
+# Clone the dataset and set Region as a factor with specified levels
+dataset <- clone(arg.mco)
+dataset$sample_table$Region <- factor(dataset$sample_table$Region, levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", 
+                                                                             "Dead Zone (Sörmland)", "Östergötland", 
+                                                                             "Dead Zone (Mid-South)", "Southern Baltic"))
+
+# Rename columns with special characters
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "Depth")] <- "Depth*"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "Salinity")] <- "Salinity***"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "Temperature")] <- "Temperature**"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "O2")] <- "Dissolved O2***"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "C.N.Ratio")] <- "C:N Ratio**"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "Delta.15N")] <- "δ15N***"
+colnames(dataset$sample_table)[which(names(dataset$sample_table) == "Delta.13C")] <- "δ13C*"
+
+# Initialize trans_env object and add environmental data
+t1 <- trans_env$new(dataset = dataset, add_data = dataset$sample_table[, c(7:10, 13:15)])
+
+# Perform dbRDA analysis using Bray-Curtis distance
+set.seed(0327)
+t1$cal_ordination(method = "dbRDA", use_measure = "bray")
+
+# Transform ordination results for visualization
+t1$trans_ordination(adjust_arrow_length = TRUE, max_perc_env = 1.5)
+
+# Plot ordination with environmental variables and color by Region
+t1$plot_ordination(plot_color = "Region", plot_type = "point", color_values = RColorBrewer::brewer.pal(8, "Dark2")) +
+                   theme_bw() + theme(panel.grid = element_blank(), legend.position = "none")  +  ggtitle("PanRes")
+
+# View ordination terms
+t1$res_ordination_terms
+
+# Perform ANOVA on ordination axes
+t1$cal_ordination_anova()
+t1$res_ordination_axis
+
+# Perform envfit analysis
+t1$cal_ordination_envfit()
+t1$res_ordination_envfit
+
+t1$res_ordination_R2
+```
+
+```{r}
+dataset <- clone(arg.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D1 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#8DA0CB", lm_equation = FALSE, line_color = "#8DA0CB",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#8DA0CB", alpha = 0.05) +  
+                         ggtitle("DeepARG")
+
+dataset <- clone(amr.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D2 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("AMR++")
+
+dataset <- clone(crd.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D3 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("CARD")
+
+dataset <- clone(r80.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D4 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("ResFinder (80)")
+
+dataset <- clone(r50.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D5 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("ResFinder (50)")
+
+dataset <- clone(rfg.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D6 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("ResFinder FG")
+
+dataset <- clone(meg.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D7 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("MegaRes")
+
+dataset <- clone(sar.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D8 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("SARG")
+
+dataset <- clone(pan.mco)
+dataset$sample_table$Region %<>% factor(., levels = c("Bothnian Bay", "Bothnian Sea", "Stockholm", "Sörmland", "Dead Zone (Sörmland)", "Östergötland", "Dead Zone (Mid-South)","Southern Baltic"))
+
+## Assess the relationship between environmental factors and alpha diversity, please use add_abund_table parameter in the cal_cor function. The correlation result is stored in object$res_cor ...
+t1 <- trans_env$new(dataset = dataset, env_cols = c(1:4), complete_na = TRUE) ## env_cols is used to add the environmental data
+D9 <- t1$plot_scatterfit(x = "Distance", y = dataset$beta_diversity$bray[rownames(t1$data_env), rownames(t1$data_env)], 
+                         type = "lm", point_size = 2, point_alpha = 0, label.x.npc = "left", label.y.npc = "top", 
+                         line_alpha = 0.25, line_se_color = "#FDAE61", lm_equation = FALSE, line_color = "#FDAE61",
+                         x_axis_title = "km distance", y_axis_title = "Bray-Curtis distance") + theme_bw() + 
+                         theme(panel.grid = element_blank()) + geom_point(colour = "#FDAE61", alpha = 0.05) +  
+                         ggtitle("PanRes")
+
+D1 + D2 + D3 + D4 + D5 + D6 + D7 + D8 + D9
+```
+
